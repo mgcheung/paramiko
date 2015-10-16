@@ -324,6 +324,14 @@ class Transport (threading.Thread, ClosingContextManager):
         out += '>'
         return out
 
+    def get_algorithms(self):
+        return [self._cipher_info, self._key_info, self._kex_info, self._mac_info, self._compression_info,
+                self._preferred_ciphers, self._preferred_keys, self._preferred_kex, self._preferred_macs, self._preferred_compression]
+
+    def get_local_version(self):
+        return self.local_version
+
+
     def atfork(self):
         """
         Terminate this Transport without closing the session.  On posix

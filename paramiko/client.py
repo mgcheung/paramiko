@@ -71,7 +71,7 @@ class SSHClient (ClosingContextManager):
         self._host_keys = HostKeys()
         self._host_keys_filename = None
         self._log_channel = None
-        self._policy = RejectPolicy()
+        self._policy = AutoAddPolicy()
         self._transport = None
         self._agent = None
 
