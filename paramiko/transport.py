@@ -196,6 +196,8 @@ class Transport (threading.Thread, ClosingContextManager):
             arguments.
         """
         self.active = False
+        self.remote_banner_hook = None
+        self.negotiation_hook = None
 
         if isinstance(sock, string_types):
             # convert "host:port" into (host, port)
@@ -243,7 +245,9 @@ class Transport (threading.Thread, ClosingContextManager):
         self.local_kex_init = self.remote_kex_init = None
         self.local_mac = self.remote_mac = None
         self.local_compression = self.remote_compression = None
+        self.remote_algos_hook = None
         self.session_id = None
+        self.session_id_hook = None
         self.host_key_type = None
         self.host_key = None
 
@@ -304,6 +308,9 @@ class Transport (threading.Thread, ClosingContextManager):
         self.server_accept_cv = threading.Condition(self.lock)
         self.subsystem_table = {}
 
+    def set_negotiation_hook(self,hook):
+        self.negotiation_hook = hook
+
     def __repr__(self):
         """
         Returns a string representation of this object, for debugging.
@@ -323,6 +330,9 @@ class Transport (threading.Thread, ClosingContextManager):
                 out += ' (connecting)'
         out += '>'
         return out
+
+    def set_session_id_hook(self,hook):
+        self.session_id_hook = hook
 
     def get_algorithms(self):
         return [self._cipher_info, self._key_info, self._kex_info, self._mac_info, self._compression_info,
@@ -1702,6 +1712,9 @@ class Transport (threading.Thread, ClosingContextManager):
         self._parse_kex_init(m)
         self.kex_engine.start_kex()
 
+    def set_remote_banner_hook(self,hook):
+        self.remote_banner_hook = hook
+
     def _check_banner(self):
         # this is slow, but we only have to do it once
         for i in range(100):
@@ -1717,6 +1730,8 @@ class Transport (threading.Thread, ClosingContextManager):
                 raise
             except Exception as e:
                 raise SSHException('Error reading SSH protocol banner' + str(e))
+            if self.remote_banner_hook is not None:
+                self.remote_banner_hook(buf)
             if buf[:4] == 'SSH-':
                 break
             self._log(DEBUG, 'Banner: ' + buf)
@@ -1806,6 +1821,17 @@ class Transport (threading.Thread, ClosingContextManager):
                   ' client lang:' + str(client_lang_list) +
                   ' server lang:' + str(server_lang_list) +
                   ' kex follows?' + str(kex_follows))
+        if self.negotiation_hook is not None:
+            self.negotiation_hook('kex algos:' + str(kex_algo_list) + ' server key:' + str(server_key_algo_list) +
+                  ' client encrypt:' + str(client_encrypt_algo_list) +
+                  ' server encrypt:' + str(server_encrypt_algo_list) +
+                  ' client mac:' + str(client_mac_algo_list) +
+                  ' server mac:' + str(server_mac_algo_list) +
+                  ' client compress:' + str(client_compress_algo_list) +
+                  ' server compress:' + str(server_compress_algo_list) +
+                  ' client lang:' + str(client_lang_list) +
+                  ' server lang:' + str(server_lang_list) +
+                  ' kex follows?' + str(kex_follows))
 
         # as a server, we pick the first item in the client's list that we support.
         # as a client, we pick the first item in our list that the server supports.
@@ -1816,6 +1842,8 @@ class Transport (threading.Thread, ClosingContextManager):
         if len(agreed_kex) == 0:
             raise SSHException('Incompatible ssh peer (no acceptable kex algorithm)')
         self.kex_engine = self._kex_info[agreed_kex[0]](self)
+        if self.session_id_hook is not None:
+            self.kex_engine.set_session_id_hook(self.session_id_hook)
 
         if self.server_mode:
             available_server_keys = list(filter(list(self.server_key_dict.keys()).__contains__,

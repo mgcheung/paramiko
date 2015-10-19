@@ -54,6 +54,7 @@ class KexGex (object):
         self.e = None
         self.f = None
         self.old_style = False
+        self.session_id_hook = None
 
     def start_kex(self, _test_old_style=False):
         if self.transport.server_mode:
@@ -181,6 +182,9 @@ class KexGex (object):
         self.transport._send_message(m)
         self.transport._expect_packet(_MSG_KEXDH_GEX_REPLY)
 
+    def _set_session_id_hook(self,hook):
+        self.session_id_hook = hook
+
     def _parse_kexdh_gex_init(self, m):
         self.e = m.get_mpint()
         if (self.e < 1) or (self.e > self.p - 1):
@@ -205,6 +209,8 @@ class KexGex (object):
         hm.add_mpint(self.f)
         hm.add_mpint(K)
         H = sha1(hm.asbytes()).digest()
+        if self.session_id_hook is not None:
+            self.session_id_hook(hm.asbytes(),H)
         self.transport._set_K_H(K, H)
         # sign it
         sig = self.transport.get_server_key().sign_ssh_data(H)
@@ -239,6 +245,8 @@ class KexGex (object):
         hm.add_mpint(self.e)
         hm.add_mpint(self.f)
         hm.add_mpint(K)
+        if self.session_id_hook is not None:
+            self.session_id_hook(hm.asbytes(),sha1(hm.asbytes()).digest())
         self.transport._set_K_H(K, sha1(hm.asbytes()).digest())
         self.transport._verify_key(host_key, sig)
         self.transport._activate_outbound()

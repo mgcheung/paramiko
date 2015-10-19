@@ -39,7 +39,7 @@ class ECDSAKey (PKey):
     """
 
     def __init__(self, msg=None, data=None, filename=None, password=None,
-                 vals=None, file_obj=None, validate_point=True):
+                 vals=None, file_obj=None, validate_point=True, sign_hook=None):
         self.verifying_key = None
         self.signing_key = None
         if file_obj is not None:

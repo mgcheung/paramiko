@@ -51,6 +51,7 @@ class KexGroup1(object):
         self.x = long(0)
         self.e = long(0)
         self.f = long(0)
+        self.session_id_hook = None
 
     def start_kex(self):
         self._generate_x()
@@ -90,6 +91,9 @@ class KexGroup1(object):
                 break
         self.x = util.inflate_long(x_bytes)
 
+    def set_session_id_hook(self,hook):
+        self.session_id_hook = hook
+
     def _parse_kexdh_reply(self, m):
         # client mode
         host_key = m.get_string()
@@ -106,6 +110,8 @@ class KexGroup1(object):
         hm.add_mpint(self.e)
         hm.add_mpint(self.f)
         hm.add_mpint(K)
+        if self.session_id_hook is not None:
+            self.session_id_hook(hm.asbytes(), sha1(hm.asbytes()).digest())
         self.transport._set_K_H(K, sha1(hm.asbytes()).digest())
         self.transport._verify_key(host_key, sig)
         self.transport._activate_outbound()
@@ -126,6 +132,8 @@ class KexGroup1(object):
         hm.add_mpint(self.f)
         hm.add_mpint(K)
         H = sha1(hm.asbytes()).digest()
+        if self.session_id_hook is not None:
+            self.session_id_hook(hm.asbytes(), H)
         self.transport._set_K_H(K, H)
         # sign it
         sig = self.transport.get_server_key().sign_ssh_data(H)

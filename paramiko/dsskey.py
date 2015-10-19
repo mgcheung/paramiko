@@ -40,12 +40,13 @@ class DSSKey (PKey):
     data.
     """
 
-    def __init__(self, msg=None, data=None, filename=None, password=None, vals=None, file_obj=None):
+    def __init__(self, msg=None, data=None, filename=None, password=None, vals=None, file_obj=None, sign_hook=None):
         self.p = None
         self.q = None
         self.g = None
         self.y = None
         self.x = None
+        self.sign_hook = sign_hook
         if file_obj is not None:
             self._from_private_key(file_obj, password)
             return
@@ -107,6 +108,7 @@ class DSSKey (PKey):
             if (k > 2) and (k < self.q):
                 break
         r, s = dss.sign(util.inflate_long(digest, 1), k)
+
         m = Message()
         m.add_string('ssh-dss')
         # apparently, in rare cases, r or s may be shorter than 20 bytes!
@@ -117,6 +119,8 @@ class DSSKey (PKey):
         if len(sstr) < 20:
             sstr = zero_byte * (20 - len(sstr)) + sstr
         m.add_string(rstr + sstr)
+        if self.sign_hook is not None:
+            self.sign_hook(data,rstr,sstr)
         return m
 
     def verify_ssh_sig(self, data, msg):

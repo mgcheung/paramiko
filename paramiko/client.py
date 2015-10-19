@@ -213,7 +213,8 @@ class SSHClient (ClosingContextManager):
         gss_kex=False,
         gss_deleg_creds=True,
         gss_host=None,
-        banner_timeout=None
+        banner_timeout=None,
+        transport_hook=None
     ):
         """
         Connect to an SSH server and authenticate to it.  The server's host key
@@ -310,6 +311,8 @@ class SSHClient (ClosingContextManager):
                 raise NoValidConnectionsError(errors)
 
         t = self._transport = Transport(sock, gss_kex=gss_kex, gss_deleg_creds=gss_deleg_creds)
+        if transport_hook is not None:
+            transport_hook(t)
         t.use_compression(compress=compress)
         if gss_kex and gss_host is None:
             t.set_gss_host(hostname)
