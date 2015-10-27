@@ -1821,17 +1821,6 @@ class Transport (threading.Thread, ClosingContextManager):
                   ' client lang:' + str(client_lang_list) +
                   ' server lang:' + str(server_lang_list) +
                   ' kex follows?' + str(kex_follows))
-        if self.negotiation_hook is not None:
-            self.negotiation_hook('kex algos:' + str(kex_algo_list) + ' server key:' + str(server_key_algo_list) +
-                  ' client encrypt:' + str(client_encrypt_algo_list) +
-                  ' server encrypt:' + str(server_encrypt_algo_list) +
-                  ' client mac:' + str(client_mac_algo_list) +
-                  ' server mac:' + str(server_mac_algo_list) +
-                  ' client compress:' + str(client_compress_algo_list) +
-                  ' server compress:' + str(server_compress_algo_list) +
-                  ' client lang:' + str(client_lang_list) +
-                  ' server lang:' + str(server_lang_list) +
-                  ' kex follows?' + str(kex_follows))
 
         # as a server, we pick the first item in the client's list that we support.
         # as a client, we pick the first item in our list that the server supports.
@@ -1905,6 +1894,17 @@ class Transport (threading.Thread, ClosingContextManager):
         # the end of the packet but not parsed.  turns out we need to throw
         # away those bytes because they aren't part of the hash.
         self.remote_kex_init = cMSG_KEXINIT + m.get_so_far()
+        if self.negotiation_hook is not None:
+            self.negotiation_hook('kex algos:' + str(kex_algo_list) + ' server key:' + str(server_key_algo_list) +
+                                  ' client encrypt:' + str(client_encrypt_algo_list) +
+                                  ' server encrypt:' + str(server_encrypt_algo_list) +
+                                  ' client mac:' + str(client_mac_algo_list) +
+                                  ' server mac:' + str(server_mac_algo_list) +
+                                  ' client compress:' + str(client_compress_algo_list) +
+                                  ' server compress:' + str(server_compress_algo_list) +
+                                  ' client lang:' + str(client_lang_list) +
+                                  ' server lang:' + str(server_lang_list) +
+                                  ' kex follows?' + str(kex_follows))
 
     def _activate_inbound(self):
         """switch on newly negotiated encryption parameters for inbound traffic"""
